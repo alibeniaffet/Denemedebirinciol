@@ -1,0 +1,58 @@
+name: APK Derle
+
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Zip'i aç
+        run: |
+          ZIP=$(ls *.zip | head -1)
+          echo "Zip bulundu: $ZIP"
+          unzip -q -o "$ZIP" -d proje
+          DIR=$(dirname "$(find proje -name package.json -not -path '*/node_modules/*' | head -1)")
+          echo "Proje klasörü: $DIR"
+          echo "DIR=$DIR" >> "$GITHUB_ENV"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - uses: android-actions/setup-android@v3
+
+      - name: Paketleri kur
+        working-directory: ${{ env.DIR }}
+        run: npm install
+
+      - name: Web uygulamasını derle
+        working-directory: ${{ env.DIR }}
+        run: npm run build
+
+      - name: Android projesini oluştur
+        working-directory: ${{ env.DIR }}
+        run: |
+          npx cap add android
+          npx cap sync android
+
+      - name: APK derle
+        working-directory: ${{ env.DIR }}/android
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleDebug
+
+      - name: APK'yı yükle
+        uses: actions/upload-artifact@v4
+        with:
+          name: Denemede-birinci-ol-APK
+          path: ${{ env.DIR }}/android/app/build/outputs/apk/debug/app-debug.apk
