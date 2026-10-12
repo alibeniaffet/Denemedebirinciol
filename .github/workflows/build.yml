@@ -29,7 +29,10 @@ jobs:
           distribution: temurin
           java-version: 21
 
-      - uses: android-actions/setup-android@v3
+      - name: Android lisanslarını kabul et
+        run: |
+          SDKM=$(find "$ANDROID_HOME/cmdline-tools" -name sdkmanager -type f | head -1)
+          yes | "$SDKM" --licenses > /dev/null || true
 
       - name: Paketleri kur
         working-directory: ${{ env.DIR }}
